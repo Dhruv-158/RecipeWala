@@ -305,7 +305,3 @@ Log levels: error, warn, info, debug
 ## License
 
 This project is licensed under the ISC License.
-
-## Support
-
-For support, email support@recipewala.com or create an issue in the repository.
