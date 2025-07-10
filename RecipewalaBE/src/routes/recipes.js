@@ -13,7 +13,8 @@ router.use(auth);
 router.post('/generate', recipeLimiter, recipeValidation, recipeController.generateRecipe);
 router.get('/', recipeController.getUserRecipes);
 router.get('/search', recipeController.searchRecipes);
-router.get('/:id', recipeController.getRecipeById);
+// Only match a valid MongoDB ObjectId for :id
+router.get('/:id([0-9a-fA-F]{24})', recipeController.getRecipeById);
 router.delete('/:id', recipeController.deleteRecipe);
 
 module.exports = router;
