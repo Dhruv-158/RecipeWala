@@ -147,9 +147,14 @@ const CookingInsights = ({ className = '' }) => {
         <h4 className="font-medium text-gray-900 mb-3">Cooking Goals</h4>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div className="p-3 bg-blue-50 rounded-lg">
-            <div className="flex items-center space-x-2 mb-2">
-              <Target className="h-4 w-4 text-blue-500" />
-              <span className="text-sm font-medium text-blue-800">Weekly Recipe Goal</span>
+            <div className="flex items-center justify-between mb-2">
+              <div className="flex items-center space-x-2">
+                <Target className="h-4 w-4 text-blue-500" />
+                <span className="text-sm font-medium text-blue-800">Weekly Recipe Goal</span>
+              </div>
+              {insights.weeklyGoalAchieved && (
+                <span className="text-xs font-semibold text-green-600 bg-green-100 px-2 py-1 rounded">Goals Achieved</span>
+              )}
             </div>
             <div className="flex items-center space-x-2">
               <div className="flex-1 bg-blue-200 rounded-full h-2">

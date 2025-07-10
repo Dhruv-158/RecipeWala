@@ -24,9 +24,18 @@ const generateRecipe = async (req, res) => {
             return responseHandler.error(res, 'Recipe generation service is currently unavailable', 503);
         }
 
+
         // Generate recipe using Gemini
         logger.info(`Generating recipe for: ${recipeName} by user: ${req.user.email}`);
         const recipeData = await geminiConfig.generateRecipe(recipeName);
+
+        // Ensure every ingredient has a unit
+        if (Array.isArray(recipeData.ingredients)) {
+            recipeData.ingredients = recipeData.ingredients.map(ing => ({
+                ...ing,
+                unit: ing.unit || 'to taste'
+            }));
+        }
 
         // Create recipe in database
         const recipe = new Recipe({

@@ -138,20 +138,27 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(registerUser.fulfilled, (state, action) => {
-        console.log('✅ Registration fulfilled:', action.payload)
-        state.isLoading = false
-        state.user = action.payload.user
-        state.accessToken = action.payload.accessToken
-        state.isAuthenticated = true
-        state.error = null
+        console.log('✅ Registration fulfilled:', action.payload);
+        const { user, accessToken } = action.payload;
+        if (user && accessToken) {
+          state.isLoading = false;
+          state.user = user;
+          state.accessToken = accessToken;
+          state.isAuthenticated = true;
+          state.error = null;
+        } else {
+          state.isLoading = false;
+          state.error = 'Invalid response from server';
+          state.isAuthenticated = false;
+        }
       })
       .addCase(registerUser.rejected, (state, action) => {
-        console.log('❌ Registration rejected:', action.payload)
-        state.isLoading = false
-        state.error = action.payload
-        state.isAuthenticated = false
-        state.user = null
-        state.accessToken = null
+        console.log('❌ Registration rejected:', action.payload);
+        state.isLoading = false;
+        state.error = action.payload || 'Registration failed';
+        state.isAuthenticated = false;
+        state.user = null;
+        state.accessToken = null;
       })
       
       // Login
@@ -161,12 +168,19 @@ const authSlice = createSlice({
         state.error = null
       })
       .addCase(loginUser.fulfilled, (state, action) => {
-        console.log('✅ Login fulfilled:', action.payload)
-        state.isLoading = false
-        state.user = action.payload.user
-        state.accessToken = action.payload.accessToken
-        state.isAuthenticated = true
-        state.error = null
+        console.log('✅ Login fulfilled:', action.payload);
+        const { user, accessToken } = action.payload;
+        if (user && accessToken) {
+          state.isLoading = false;
+          state.user = user;
+          state.accessToken = accessToken;
+          state.isAuthenticated = true;
+          state.error = null;
+        } else {
+          state.isLoading = false;
+          state.error = 'Invalid response from server';
+          state.isAuthenticated = false;
+        }
       })
       .addCase(loginUser.rejected, (state, action) => {
         console.log('❌ Login rejected:', action.payload)

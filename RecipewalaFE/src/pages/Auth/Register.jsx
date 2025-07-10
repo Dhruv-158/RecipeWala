@@ -1,20 +1,22 @@
+// ENHANCED UPDATE: src/pages/Auth/Register.jsx - Apply new styling classes
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { useDispatch, useSelector } from 'react-redux'
 import { useForm } from 'react-hook-form'
 import { yupResolver } from '@hookform/resolvers/yup'
 import * as yup from 'yup'
-import { Mail, Lock, User, Eye, EyeOff, Loader2 } from 'lucide-react'
+import { Mail, Lock, User, Eye, EyeOff, Loader2, AlertCircle } from 'lucide-react'
 import { registerUser, clearError } from '../../features/auth/authSlice'
 import toast from 'react-hot-toast'
 
-// Validation schema
+// Validation schema  
 const registerSchema = yup.object({
-  name: yup
+  username: yup
     .string()
-    .required('Name is required')
-    .min(2, 'Name must be at least 2 characters')
-    .max(50, 'Name must be less than 50 characters'),
+    .required('Username is required')
+    .min(3, 'Username must be at least 3 characters')
+    .max(20, 'Username must be less than 20 characters')
+    .matches(/^[a-zA-Z0-9_]+$/, 'Username can only contain letters, numbers, and underscores'),
   email: yup
     .string()
     .required('Email is required')
@@ -62,6 +64,7 @@ const Register = () => {
   // Navigate after successful registration
   useEffect(() => {
     if (isAuthenticated) {
+      console.log('🎉 Registration successful, navigating to dashboard')
       navigate('/dashboard', { replace: true })
       toast.success('Account created successfully!')
     }
@@ -77,13 +80,15 @@ const Register = () => {
   const onSubmit = async (data) => {
     try {
       dispatch(clearError())
-      // Remove confirmPassword before sending to API
-      const { confirmPassword, ...userData } = data
-      await dispatch(registerUser(userData)).unwrap()
-      reset()
+      const result = await dispatch(registerUser(data)).unwrap()
+      if (result.user && result.accessToken) {
+        reset()
+      } else {
+        toast.error('Registration failed. Please try again.')
+      }
     } catch (err) {
-      // Error handled by Redux and useEffect above
       console.error('Registration failed:', err)
+      toast.error(err.message || 'Registration failed. Please try again.')
     }
   }
 
@@ -111,75 +116,81 @@ const Register = () => {
   const passwordStrength = getPasswordStrength(password)
 
   return (
-    <div>
-      <h2 className="text-2xl font-bold text-gray-800 mb-6 text-center">Create Account</h2>
+    <div className="fade-in">
+      {/* Welcome Header */}
+      <div className="text-center mb-8">
+        <h1 className="text-xl font-bold text-gray-800 mb-2 kitchen-subtitle">Welcome To,</h1>
+        <h2 className="text-3xl font-bold kitchen-title mb-4">
+          RecipeWala
+        </h2>
+        <div className="kitchen-divider w-24"></div>
+        <h3 className="text-2xl font-semibold kitchen-label mb-2">Sign Up</h3>
+      </div>
       
       {error && (
-        <div className="mb-4 p-3 bg-red-100 border border-red-400 text-red-700 rounded-lg text-sm">
-          {error}
+        <div className="mb-6 p-4 kitchen-error rounded-xl text-sm flex items-center space-x-2 slide-up">
+          <AlertCircle className="h-5 w-5 flex-shrink-0" />
+          <span>{error}</span>
         </div>
       )}
       
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
-        {/* Name Field */}
-        <div>
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700 mb-1">
-            Full Name
+      <form onSubmit={handleSubmit(onSubmit)} className="grid grid-cols-2 gap-4">
+        {/* Username Field */}
+        <div className="kitchen-focus">
+          <label htmlFor="username" className="block text-lg font-medium kitchen-label mb-2">
+            Username
           </label>
           <div className="relative">
-            <User className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
-              {...register('name')}
+              {...register('username')}
               type="text"
-              id="name"
-              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                errors.name ? 'border-red-500' : 'border-gray-300'
+              id="username"
+              className={`kitchen-input w-full px-4 py-3 text-gray-700 ${
+                errors.username ? 'border-red-400' : ''
               }`}
-              placeholder="Enter your full name"
+              placeholder="Enter your username"
               disabled={isLoading}
             />
           </div>
-          {errors.name && (
-            <p className="mt-1 text-sm text-red-600">{errors.name.message}</p>
+          {errors.username && (
+            <p className="mt-2 text-sm text-red-600 slide-up">{errors.username.message}</p>
           )}
         </div>
 
         {/* Email Field */}
-        <div>
-          <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-1">
-            Email Address
+        <div className="kitchen-focus">
+          <label htmlFor="email" className="block text-lg font-medium kitchen-label mb-2">
+            Email
           </label>
           <div className="relative">
-            <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
               {...register('email')}
               type="email"
               id="email"
-              className={`w-full pl-10 pr-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                errors.email ? 'border-red-500' : 'border-gray-300'
+              className={`kitchen-input w-full px-4 py-3 text-gray-700 ${
+                errors.email ? 'border-red-400' : ''
               }`}
-              placeholder="Enter your email"
+              placeholder="XYZ@gmail.com"
               disabled={isLoading}
             />
           </div>
           {errors.email && (
-            <p className="mt-1 text-sm text-red-600">{errors.email.message}</p>
+            <p className="mt-2 text-sm text-red-600 slide-up">{errors.email.message}</p>
           )}
         </div>
 
         {/* Password Field */}
-        <div>
-          <label htmlFor="password" className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="kitchen-focus">
+          <label htmlFor="password" className="block text-lg font-medium kitchen-label mb-2">
             Password
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
               {...register('password')}
               type={showPassword ? 'text' : 'password'}
               id="password"
-              className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                errors.password ? 'border-red-500' : 'border-gray-300'
+              className={`kitchen-input w-full px-4 py-3 text-gray-700 pr-12 ${
+                errors.password ? 'border-red-400' : ''
               }`}
               placeholder="Create a password"
               disabled={isLoading}
@@ -187,46 +198,45 @@ const Register = () => {
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-orange-500 disabled:cursor-not-allowed transition-colors"
               disabled={isLoading}
             >
-              {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
           
           {/* Password strength indicator */}
           {password && (
-            <div className="mt-2">
-              <div className="flex items-center space-x-2">
+            <div className="mt-3 slide-up">
+              <div className="flex items-center space-x-3">
                 <div className="flex-1 bg-gray-200 rounded-full h-2">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-300 ${passwordStrength.color}`}
+                    className={`password-strength-bar rounded-full transition-all duration-300 ${passwordStrength.color}`}
                     style={{ width: `${(passwordStrength.strength / 5) * 100}%` }}
                   />
                 </div>
-                <span className="text-xs text-gray-600">{passwordStrength.label}</span>
+                <span className="text-sm kitchen-label font-medium">{passwordStrength.label}</span>
               </div>
             </div>
           )}
           
           {errors.password && (
-            <p className="mt-1 text-sm text-red-600">{errors.password.message}</p>
+            <p className="mt-2 text-sm text-red-600 slide-up">{errors.password.message}</p>
           )}
         </div>
 
         {/* Confirm Password Field */}
-        <div>
-          <label htmlFor="confirmPassword" className="block text-sm font-medium text-gray-700 mb-1">
+        <div className="kitchen-focus">
+          <label htmlFor="confirmPassword" className="block text-lg font-medium kitchen-label mb-2">
             Confirm Password
           </label>
           <div className="relative">
-            <Lock className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
             <input
               {...register('confirmPassword')}
               type={showConfirmPassword ? 'text' : 'password'}
               id="confirmPassword"
-              className={`w-full pl-10 pr-10 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
-                errors.confirmPassword ? 'border-red-500' : 'border-gray-300'
+              className={`kitchen-input w-full px-4 py-3 text-gray-700 pr-12 ${
+                errors.confirmPassword ? 'border-red-400' : ''
               }`}
               placeholder="Confirm your password"
               disabled={isLoading}
@@ -234,14 +244,14 @@ const Register = () => {
             <button
               type="button"
               onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-              className="absolute right-3 top-3 text-gray-400 hover:text-gray-600 disabled:cursor-not-allowed"
+              className="absolute right-4 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-orange-500 disabled:cursor-not-allowed transition-colors"
               disabled={isLoading}
             >
-              {showConfirmPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+              {showConfirmPassword ? <EyeOff className="h-5 w-5" /> : <Eye className="h-5 w-5" />}
             </button>
           </div>
           {errors.confirmPassword && (
-            <p className="mt-1 text-sm text-red-600">{errors.confirmPassword.message}</p>
+            <p className="mt-2 text-sm text-red-600 slide-up">{errors.confirmPassword.message}</p>
           )}
         </div>
 
@@ -249,28 +259,28 @@ const Register = () => {
         <button
           type="submit"
           disabled={isLoading || !isValid}
-          className="w-full bg-orange-500 text-white py-2 px-4 rounded-lg hover:bg-orange-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2"
+          className="kitchen-button col-span-2 w-full text-white py-3 px-4 text-lg disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-2 mt-2"
         >
           {isLoading ? (
             <>
-              <Loader2 className="h-4 w-4 animate-spin" />
+              <Loader2 className="h-5 w-5 animate-spin kitchen-spinner" />
               <span>Creating Account...</span>
             </>
           ) : (
-            <span>Create Account</span>
+            <span>Sign Up</span>
           )}
         </button>
-      </form>
 
-      {/* Login Link */}
-      <div className="mt-6 text-center">
-        <p className="text-sm text-gray-600">
-          Already have an account?{' '}
-          <Link to="/login" className="text-orange-500 hover:text-orange-600 font-medium">
-            Sign in here
-          </Link>
-        </p>
-      </div>
+        {/* Login Link */}
+        <div className="text-center col-span-2">
+          <p className="kitchen-subtitle">
+            Already have an account?{' '}
+            <Link to="/login" className="kitchen-link font-semibold">
+              Sign In
+            </Link>
+          </p>
+        </div>
+      </form>
     </div>
   )
 }

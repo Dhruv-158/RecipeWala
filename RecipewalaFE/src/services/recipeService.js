@@ -1,8 +1,9 @@
 import api from './api'
 
 export const recipeService = {
-  async generateRecipe(recipeName) {
-    return await api.post('/recipes/generate', { recipeName })
+  async generateRecipe(data) {
+    // Send the full form data to the backend
+    return await api.post('/recipes/generate', data)
   },
 
   async getUserRecipes(params = {}) {
@@ -20,5 +21,10 @@ export const recipeService = {
 
   async updateRecipe(id, data) {
     return await api.put(`/recipes/${id}`, data)
+  },
+
+  async getRecipeStats() {
+    // Fetch per-user stats from new backend endpoint
+    return await api.get('/recipes/stats')
   }
 }

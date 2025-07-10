@@ -11,7 +11,10 @@ require('dotenv').config();
 // Import routes
 const authRoutes = require('./src/routes/auth');
 const recipeRoutes = require('./src/routes/recipes');
+const recipeStatsRoutes = require('./src/routes/recipeStats');
 const userRoutes = require('./src/routes/users');
+const analyticsRoutes = require('./src/routes/analytics');
+const notificationRoutes = require('./src/routes/notifications');
 
 const app = express();
 const PORT = process.env.PORT || 5000;
@@ -47,7 +50,10 @@ app.get('/', (req, res) => {
 
 app.use('/api/auth', authRoutes);
 app.use('/api/recipes', recipeRoutes);
+app.use('/api/recipes/stats', recipeStatsRoutes);
 app.use('/api/users', userRoutes);
+app.use('/api/analytics', analyticsRoutes);
+app.use('/api/notifications', notificationRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

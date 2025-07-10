@@ -19,6 +19,7 @@ import {
 } from 'lucide-react'
 import { generateRecipe, clearError } from '../../features/recipes/recipeSlice'
 import toast from 'react-hot-toast'
+import logoImg from '../../assets/images/logo.png'
 
 // Validation schema
 const recipeSchema = yup.object({
@@ -122,12 +123,15 @@ const RecipeGenerator = () => {
   ]
 
   const quickSuggestions = [
-    'Pasta Carbonara',
-    'Chicken Tikka Masala',
-    'Beef Tacos',
-    'Vegetable Stir Fry',
-    'Chocolate Brownies',
-    'Caesar Salad'
+    'Palak Paneer',
+    'Pani Puri',
+    'Dhokla',
+    'Undhiyu',
+    'Thepla',
+    'Veg Upma',
+    'Pav Bhaji',
+    'Poha',
+    'Aloo Paratha'
   ]
 
   return (
@@ -342,7 +346,7 @@ const RecipeGenerator = () => {
         <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8">
           <div className="text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 bg-orange-100 rounded-full mb-4">
-              <ChefHat className="h-8 w-8 text-orange-500 animate-bounce" />
+              <img src={logoImg} alt="RecipeWala Logo" className="w-10 h-10 sm:w-12 sm:h-12 lg:w-16 lg:h-16 object-contain rounded-xl lg:rounded-2xl bg-white shadow-lg" />
             </div>
             <h3 className="text-xl font-semibold text-gray-900 mb-2">
               Creating Your Recipe...
@@ -358,17 +362,27 @@ const RecipeGenerator = () => {
         </div>
       )}
 
-      {/* Generated Recipe Display */}
-      {currentRecipe && !isGenerating && (
-        <div id="generated-recipe" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
-          <RecipeDisplay 
-            recipe={currentRecipe} 
-            onRegenerate={handleRegenerateRecipe}
-            onSave={() => toast.success('Recipe saved!')}
-            onView={() => navigate(`/recipes/${currentRecipe.id}`)}
-          />
-        </div>
-      )}
+      {/* Button to view generated recipe */}
+      {/* {currentRecipe && !isGenerating && (currentRecipe.id || currentRecipe._id) && (
+        <>
+          <div className="flex justify-center mt-6">
+            <button
+              onClick={() => navigate(`/recipes/${currentRecipe.id || currentRecipe._id}`)}
+              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
+            >
+              View This Recipe
+            </button>
+          </div>
+          <div id="generated-recipe" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
+            <RecipeDisplay 
+              recipe={currentRecipe} 
+              onRegenerate={handleRegenerateRecipe}
+              onSave={() => toast.success('Recipe saved!')}
+              onView={() => navigate(`/recipes/${recentRecipe.id || recentRecipe._id}`)}
+            />
+          </div>
+        </>
+      )} */}
     </div>
   )
 }
@@ -383,14 +397,40 @@ const RecipeDisplay = ({ recipe, onRegenerate, onSave, onView }) => {
     { id: 'nutrition', label: 'Nutrition', icon: null },
   ]
 
+  // Helper to get recipe name/title
+  const getRecipeTitle = (r) => r.title || r.name || 'Untitled Recipe'
+  // Helper to get description
+  const getRecipeDescription = (r) => r.description || ''
+  // Helper to get ingredients as strings
+  const getIngredients = (r) => {
+    if (Array.isArray(r.ingredients)) {
+      if (typeof r.ingredients[0] === 'string') return r.ingredients
+      // If array of objects
+      return r.ingredients.map(ing => {
+        if (typeof ing === 'string') return ing
+        return `${ing.amount || ''} ${ing.unit || ''} ${ing.item || ''}`.trim()
+      })
+    }
+    return []
+  }
+  // Helper to get instructions as strings
+  const getInstructions = (r) => {
+    if (Array.isArray(r.instructions)) {
+      if (typeof r.instructions[0] === 'string') return r.instructions
+      // If array of objects
+      return r.instructions.map(step => step.instruction || step.step || step)
+    }
+    return []
+  }
+
   return (
     <div>
       {/* Recipe Header */}
       <div className="bg-gradient-to-r from-green-500 to-blue-500 p-6 text-white">
         <div className="flex items-start justify-between">
           <div>
-            <h2 className="text-2xl font-bold mb-2">{recipe.title}</h2>
-            <p className="text-green-100 mb-4">{recipe.description}</p>
+            <h2 className="text-2xl font-bold mb-2">{getRecipeTitle(recipe)}</h2>
+            <p className="text-green-100 mb-4">{getRecipeDescription(recipe)}</p>
             
             {/* Recipe Meta */}
             <div className="flex items-center space-x-6 text-sm">
@@ -461,12 +501,12 @@ const RecipeDisplay = ({ recipe, onRegenerate, onSave, onView }) => {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Ingredients</h3>
             <ul className="space-y-2">
-              {recipe.ingredients?.map((ingredient, index) => (
+              {getIngredients(recipe).length > 0 ? getIngredients(recipe).map((ingredient, index) => (
                 <li key={index} className="flex items-center space-x-2">
                   <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
                   <span className="text-gray-700">{ingredient}</span>
                 </li>
-              )) || (
+              )) : (
                 <li className="text-gray-500">No ingredients available</li>
               )}
             </ul>
@@ -477,14 +517,14 @@ const RecipeDisplay = ({ recipe, onRegenerate, onSave, onView }) => {
           <div>
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructions</h3>
             <ol className="space-y-4">
-              {recipe.instructions?.map((step, index) => (
+              {getInstructions(recipe).length > 0 ? getInstructions(recipe).map((step, index) => (
                 <li key={index} className="flex space-x-3">
                   <span className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
                     {index + 1}
                   </span>
                   <p className="text-gray-700 pt-0.5">{step}</p>
                 </li>
-              )) || (
+              )) : (
                 <li className="text-gray-500">No instructions available</li>
               )}
             </ol>
@@ -496,12 +536,14 @@ const RecipeDisplay = ({ recipe, onRegenerate, onSave, onView }) => {
             <h3 className="text-lg font-semibold text-gray-900 mb-4">Nutritional Information</h3>
             {recipe.nutrition ? (
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(recipe.nutrition).map(([key, value]) => (
-                  <div key={key} className="bg-gray-50 rounded-lg p-3 text-center">
-                    <p className="text-2xl font-bold text-gray-900">{value}</p>
-                    <p className="text-sm text-gray-600 capitalize">{key}</p>
-                  </div>
-                ))}
+                {Object.entries(recipe.nutrition)
+                  .filter(([key, _]) => key.toLowerCase() !== 'id' && key.toLowerCase() !== '_id')
+                  .map(([key, value]) => (
+                    <div key={key} className="bg-gray-50 rounded-lg p-3 text-center">
+                      <p className="text-2xl font-bold text-gray-900">{value}</p>
+                      <p className="text-sm text-gray-600 capitalize">{key}</p>
+                    </div>
+                  ))}
               </div>
             ) : (
               <p className="text-gray-500">Nutritional information not available</p>

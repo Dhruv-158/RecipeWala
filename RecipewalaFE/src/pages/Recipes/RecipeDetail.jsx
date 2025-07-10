@@ -15,7 +15,7 @@ import {
   Star,
   BookOpen
 } from 'lucide-react'
-import { recipeService } from '../../services/recipeService'
+import { getRecipeById, deleteRecipe } from '../../features/recipes/recipeSlice'
 import LoadingSpinner from '../../components/Common/LoadingSpinner'
 import toast from 'react-hot-toast'
 
@@ -23,32 +23,29 @@ const RecipeDetail = () => {
   const { id } = useParams()
   const navigate = useNavigate()
   const dispatch = useDispatch()
-  const [recipe, setRecipe] = useState(null)
-  const [loading, setLoading] = useState(true)
+  const { currentRecipe: recipe, isLoading } = useSelector(state => state.recipes)
   const [activeTab, setActiveTab] = useState('ingredients')
   const [servings, setServings] = useState(4)
 
-  // Fetch recipe details
+  // Fetch recipe details from Redux
   useEffect(() => {
-    const fetchRecipe = async () => {
-      try {
-        setLoading(true)
-        const response = await recipeService.getRecipeById(id)
-        setRecipe(response.data.recipe)
-        setServings(response.data.recipe.servings || 4)
-      } catch (error) {
-        console.error('Failed to fetch recipe:', error)
-        toast.error('Failed to load recipe')
-        navigate('/recipes')
-      } finally {
-        setLoading(false)
-      }
-    }
-
     if (id) {
-      fetchRecipe()
+      dispatch(getRecipeById(id)).then((action) => {
+        if (action.error) {
+          toast.error('Failed to load recipe')
+          navigate('/recipes')
+        }
+      })
     }
-  }, [id, navigate])
+    // eslint-disable-next-line
+  }, [id, dispatch, navigate])
+
+  // Reset servings when recipe changes
+  useEffect(() => {
+    if (recipe && recipe.servings) {
+      setServings(recipe.servings)
+    }
+  }, [recipe])
 
   const handleServingsChange = (newServings) => {
     setServings(Math.max(1, newServings))
@@ -57,7 +54,7 @@ const RecipeDetail = () => {
   const handleDeleteRecipe = async () => {
     if (window.confirm('Are you sure you want to delete this recipe?')) {
       try {
-        await recipeService.deleteRecipe(id)
+        await dispatch(deleteRecipe(id)).unwrap()
         toast.success('Recipe deleted successfully')
         navigate('/recipes')
       } catch (error) {
@@ -91,17 +88,28 @@ const RecipeDetail = () => {
   const calculateIngredients = (ingredients, originalServings, newServings) => {
     const ratio = newServings / originalServings
     return ingredients.map(ingredient => {
-      // Simple ingredient scaling - in production, you'd want more sophisticated parsing
-      const numbers = ingredient.match(/\d+\.?\d*/g)
-      if (numbers) {
-        let scaledIngredient = ingredient
-        numbers.forEach(num => {
-          const scaledNum = (parseFloat(num) * ratio).toFixed(2).replace(/\.?0+$/, '')
-          scaledIngredient = scaledIngredient.replace(num, scaledNum)
-        })
-        return scaledIngredient
+      // If ingredient is a string, scale as before
+      if (typeof ingredient === 'string') {
+        const numbers = ingredient.match(/\d+\.?\d*/g)
+        if (numbers) {
+          let scaledIngredient = ingredient
+          numbers.forEach(num => {
+            const scaledNum = (parseFloat(num) * ratio).toFixed(2).replace(/\.?0+$/, '')
+            scaledIngredient = scaledIngredient.replace(num, scaledNum)
+          })
+          return scaledIngredient
+        }
+        return ingredient
       }
-      return ingredient
+      // If ingredient is an object, format and scale quantity
+      if (typeof ingredient === 'object' && ingredient !== null) {
+        const qty = ingredient.quantity ? (ingredient.quantity * ratio).toFixed(2).replace(/\.?0+$/, '') : ''
+        const unit = ingredient.unit || ''
+        const name = ingredient.name || ''
+        return [qty, unit, name].filter(Boolean).join(' ').trim()
+      }
+      // Fallback for unexpected types
+      return String(ingredient)
     })
   }
 
@@ -111,7 +119,7 @@ const RecipeDetail = () => {
     { id: 'nutrition', label: 'Nutrition', icon: null },
   ]
 
-  if (loading) {
+  if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
@@ -274,14 +282,21 @@ const RecipeDetail = () => {
             <div>
               <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructions</h3>
               <ol className="space-y-4">
-                {recipe.instructions?.map((step, index) => (
-                  <li key={index} className="flex space-x-4">
-                    <span className="flex-shrink-0 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                      {index + 1}
-                    </span>
-                    <p className="text-gray-700 pt-1 leading-relaxed">{step}</p>
-                  </li>
-                )) || (
+                {Array.isArray(recipe.instructions) && recipe.instructions.length > 0 ? (
+                  recipe.instructions.map((step, index) => {
+                    let text = ''
+                    if (typeof step === 'string') text = step
+                    else if (typeof step === 'object' && step !== null) text = step.instruction || step.step || JSON.stringify(step)
+                    return (
+                      <li key={index} className="flex space-x-4">
+                        <span className="flex-shrink-0 w-8 h-8 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
+                          {index + 1}
+                        </span>
+                        <p className="text-gray-700 pt-1 leading-relaxed">{text}</p>
+                      </li>
+                    )
+                  })
+                ) : (
                   <li className="text-gray-500">No instructions available</li>
                 )}
               </ol>
@@ -293,21 +308,25 @@ const RecipeDetail = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Nutritional Information {servings !== (recipe.servings || 4) && `(per serving, scaled)`}
               </h3>
-              {recipe.nutrition ? (
+              {recipe.nutrition && typeof recipe.nutrition === 'object' ? (
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                  {Object.entries(recipe.nutrition).map(([key, value]) => {
-                    // Scale nutrition values if servings changed
-                    const scaledValue = typeof value === 'number' && servings !== (recipe.servings || 4) ?
-                      Math.round(value * servings / (recipe.servings || 4)) :
-                      value
-                    
-                    return (
-                      <div key={key} className="bg-gray-50 rounded-lg p-4 text-center">
-                        <p className="text-2xl font-bold text-gray-900">{scaledValue}</p>
-                        <p className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
-                      </div>
-                    )
-                  })}
+                  {Object.entries(recipe.nutrition)
+                    .filter(([key, _]) => key.toLowerCase() !== 'id' && key.toLowerCase() !== '_id')
+                    .map(([key, value]) => {
+                      // If value is an object or array, skip or stringify
+                      let displayValue = value
+                      if (typeof value === 'object' && value !== null) {
+                        displayValue = JSON.stringify(value)
+                      } else if (typeof value === 'number' && servings !== (recipe.servings || 4)) {
+                        displayValue = Math.round(value * servings / (recipe.servings || 4))
+                      }
+                      return (
+                        <div key={key} className="bg-gray-50 rounded-lg p-4 text-center">
+                          <p className="text-2xl font-bold text-gray-900">{displayValue}</p>
+                          <p className="text-sm text-gray-600 capitalize">{key.replace(/([A-Z])/g, ' $1').trim()}</p>
+                        </div>
+                      )
+                    })}
                 </div>
               ) : (
                 <p className="text-gray-500">Nutritional information not available</p>
