@@ -11,6 +11,7 @@ import {
   ShoppingCart
 } from 'lucide-react'
 import { toggleSidebar, setSidebarOpen } from '../../features/ui/uiSlice'
+import logoImg from '../../assets/images/logo.png'
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard', icon: Home },
@@ -47,7 +48,7 @@ const Sidebar = () => {
           {sidebarOpen ? (
             <>
               <div className="flex items-center space-x-2">
-                <ChefHat className="h-8 w-8 text-orange-500" />
+                <img src={logoImg} alt="RecipeWala Logo" className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 object-contain rounded-xl lg:rounded-2xl bg-white shadow-lg" />
                 <span className="text-xl font-bold text-gray-800">RecipeWala</span>
               </div>
               <button
@@ -62,7 +63,7 @@ const Sidebar = () => {
               onClick={() => dispatch(toggleSidebar())}
               className="mx-auto"
             >
-              <ChefHat className="h-8 w-8 text-orange-500" />
+              <img src={logoImg} alt="RecipeWala Logo" className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 object-contain rounded-xl lg:rounded-2xl bg-white shadow-lg" />
             </button>
           )}
         </div>
@@ -102,7 +103,7 @@ const Sidebar = () => {
         {/* Logo area */}
         <div className="flex items-center justify-between p-4 border-b border-gray-200">
           <div className="flex items-center space-x-2">
-            <ChefHat className="h-8 w-8 text-orange-500" />
+            <img src={logoImg} alt="RecipeWala Logo" className="w-10 h-10 sm:w-12 sm:h-12 lg:w-14 lg:h-14 object-contain rounded-xl lg:rounded-2xl bg-white shadow-lg" />
             <span className="text-xl font-bold text-gray-800">RecipeWala</span>
           </div>
           <button

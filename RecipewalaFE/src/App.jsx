@@ -1,6 +1,8 @@
 // WORKING: src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom'
-import { useSelector } from 'react-redux'
+import { useSelector, useDispatch } from 'react-redux'
+import { useEffect } from 'react'
+import { loadUser } from './features/auth/loadUser'
 import Layout from './components/Layout/Layout'
 import AuthLayout from './components/Layout/AuthLayout'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
@@ -37,8 +39,18 @@ const CollectionDetail = () => {
   )
 }
 
+
 function App() {
   const { isAuthenticated } = useSelector((state) => state.auth)
+  const dispatch = useDispatch()
+
+  // Load user profile on app start (if token exists)
+  useEffect(() => {
+    const token = localStorage.getItem('accessToken')
+    if (token) {
+      dispatch(loadUser())
+    }
+  }, [dispatch])
 
   return (
     <div className="App">

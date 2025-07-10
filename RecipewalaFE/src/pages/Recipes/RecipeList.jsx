@@ -73,12 +73,37 @@ const RecipeList = () => {
     { value: 'cookTime', label: 'Cook Time' }
   ]
 
-  if (isLoading && recipes.length === 0) {
+  // Defensive fallback for recipes and pagination
+  const safeRecipes = Array.isArray(recipes) ? recipes : []
+  const safePagination = pagination || { current: 1, pages: 1, total: 0 }
+
+  if (error) {
     return (
       <div className="flex items-center justify-center min-h-96">
         <div className="text-center">
-          <LoadingSpinner size="large" className="mx-auto mb-4" />
-          <p className="text-gray-600">Loading your recipes...</p>
+          <p className="text-red-600 font-semibold mb-2">{error}</p>
+          <button
+            onClick={() => dispatch(fetchUserRecipes({ page: 1, limit: 12 }))}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 mt-2"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
+
+  if (!isLoading && safeRecipes.length === 0) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <p className="text-gray-600 mb-4">No recipes found. Try generating a new recipe!</p>
+          <button
+            onClick={() => navigate('/generate')}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600"
+          >
+            Generate Recipe
+          </button>
         </div>
       </div>
     )
@@ -91,7 +116,7 @@ const RecipeList = () => {
         <div>
           <h1 className="text-2xl font-bold text-gray-900">My Recipes</h1>
           <p className="text-gray-600">
-            {recipes.length} {recipes.length === 1 ? 'recipe' : 'recipes'} in your collection
+            {safeRecipes.length} {safeRecipes.length === 1 ? 'recipe' : 'recipes'} in your collection
           </p>
         </div>
         <button
@@ -163,11 +188,11 @@ const RecipeList = () => {
       </div>
 
       {/* Recipe Grid */}
-      {recipes.length === 0 ? (
+      {safeRecipes.length === 0 ? (
         <EmptyState onGenerateRecipe={() => navigate('/generate')} />
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {recipes.map((recipe) => (
+          {safeRecipes.map((recipe) => (
             <RecipeCard
               key={recipe.id}
               recipe={recipe}
@@ -181,19 +206,19 @@ const RecipeList = () => {
       )}
 
       {/* Pagination */}
-      {pagination.pages > 1 && (
+      {safePagination.pages > 1 && (
         <div className="flex items-center justify-center space-x-2">
           <button
-            disabled={pagination.current === 1}
+            disabled={safePagination.current === 1}
             className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
           >
             Previous
           </button>
           <span className="px-4 py-2 text-gray-600">
-            Page {pagination.current} of {pagination.pages}
+            Page {safePagination.current} of {safePagination.pages}
           </span>
           <button
-            disabled={pagination.current === pagination.pages}
+            disabled={safePagination.current === safePagination.pages}
             className="px-3 py-2 border border-gray-300 rounded-lg disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50"
           >
             Next

@@ -5,12 +5,14 @@ import { useEffect, useState } from 'react'
 import { getRecipeStats, fetchUserRecipes } from '../../features/recipes/recipeSlice'
 import LoadingSpinner from '../../components/Common/LoadingSpinner'
 import CookingInsights from '../../components/Analytics/CookingInsights'
+import logoImg from '../../assets/images/logo.png'
 
 const Dashboard = () => {
   const navigate = useNavigate()
   const dispatch = useDispatch()
   const { user } = useSelector((state) => state.auth)
-  const { stats, recipes, isLoading } = useSelector((state) => state.recipes)
+  // Defensive fallback for stats and recipes
+  const { stats = {}, recipes = [], isLoading, error } = useSelector((state) => state.recipes)
   const [currentTime, setCurrentTime] = useState(new Date())
 
   // Update time every minute for dynamic greeting
@@ -35,49 +37,72 @@ const Dashboard = () => {
     return 'Good evening'
   }
 
-  const getFirstName = (fullName) => {
-    return fullName ? fullName.split(' ')[0] : 'Chef'
+
+  // Use username if available, otherwise fallback to first name or 'Chef'
+  const getDisplayName = (user) => {
+    if (!user) return 'Chef';
+    if (user.username) return user.username;
+    if (user.name) return user.name.split(' ')[0];
+    return 'Chef';
   }
 
+  // Use real stats from backend (from Redux slice)
   const statCards = [
-    { 
-      title: 'Total Recipes', 
-      value: stats.totalRecipes?.toString() || '0', 
-      icon: BookOpen, 
+    {
+      title: 'Total Recipes',
+      value: stats.totalRecipes?.toString() || '0',
+      icon: BookOpen,
       color: 'bg-blue-500',
-      trend: '+2 this month'
+      trend: stats.totalRecipesTrend || '',
     },
-    { 
-      title: 'Generated Today', 
-      value: stats.generatedToday?.toString() || '0', 
-      icon: Plus, 
+    {
+      title: 'Generated Today',
+      value: stats.generatedToday?.toString() || '0',
+      icon: Plus,
       color: 'bg-green-500',
-      trend: 'Keep cooking!'
+      trend: stats.generatedTodayTrend || '',
     },
-    { 
-      title: 'Favorites', 
-      value: stats.favorites?.toString() || '0', 
-      icon: Heart, 
+    {
+      title: 'Favorites',
+      value: stats.favorites?.toString() || '0',
+      icon: Heart,
       color: 'bg-red-500',
-      trend: 'Your loved ones'
+      trend: stats.favoritesTrend || '',
     },
-    { 
-      title: 'This Week', 
-      value: stats.thisWeek?.toString() || '0', 
-      icon: TrendingUp, 
+    {
+      title: 'This Week',
+      value: stats.thisWeek?.toString() || '0',
+      icon: TrendingUp,
       color: 'bg-purple-500',
-      trend: 'Weekly progress'
+      trend: stats.thisWeekTrend || '',
     },
   ]
 
-  const recentRecipes = recipes.slice(0, 3)
+  const recentRecipes = Array.isArray(recipes) ? recipes.slice(0, 3) : []
+
+  // Error state for recipes
+  if (error) {
+    return (
+      <div className="flex items-center justify-center min-h-96">
+        <div className="text-center">
+          <p className="text-red-600 font-semibold mb-2">{error}</p>
+          <button
+            onClick={() => dispatch(fetchUserRecipes({ limit: 6, sort: 'newest' }))}
+            className="bg-orange-500 text-white px-4 py-2 rounded-lg hover:bg-orange-600 mt-2"
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="space-y-6">
       {/* Welcome Section */}
       <div className="bg-gradient-to-r from-orange-500 to-yellow-500 rounded-xl p-6 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          {getGreeting()}, {getFirstName(user?.name)}! 👨‍🍳
+          {getGreeting()}, {getDisplayName(user)}! 👨‍🍳
         </h1>
         <p className="text-orange-100 mb-4">Ready to create something delicious today?</p>
         <div className="flex flex-col sm:flex-row gap-3">
@@ -146,7 +171,7 @@ const Dashboard = () => {
                   onClick={() => navigate(`/recipes/${recipe.id}`)}
                 >
                   <div className="w-12 h-12 bg-gradient-to-br from-orange-400 to-red-500 rounded-lg flex items-center justify-center">
-                    <ChefHat className="h-6 w-6 text-white" />
+                    <img src={logoImg} alt="Logo" className="h-10 w-10 object-contain" />
                   </div>
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-gray-900 truncate">{recipe.title}</p>
@@ -245,10 +270,17 @@ const getTodaysTip = () => {
     "Room temperature ingredients mix better and cook more evenly.",
     "Use a thermometer for perfect doneness - guessing leads to overcooking.",
     "Fresh herbs should be added at the end to preserve their flavor and color."
-  ]
-  
-  const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0)) / (1000 * 60 * 60 * 24))
-  return tips[dayOfYear % tips.length]
+  ];
+  // Use the current date string as a seed for randomness, so it changes every day
+  const today = new Date();
+  const seed = today.getFullYear() * 10000 + (today.getMonth() + 1) * 100 + today.getDate();
+  let hash = 0;
+  for (let i = 0; i < seed.toString().length; i++) {
+    hash = (hash << 5) - hash + seed.toString().charCodeAt(i);
+    hash |= 0;
+  }
+  const idx = Math.abs(hash) % tips.length;
+  return tips[idx];
 }
 
 export default Dashboard

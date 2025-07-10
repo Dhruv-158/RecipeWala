@@ -67,14 +67,7 @@ const fallbackRecipeService = {
   })
 }
 
-// Try to import the real recipe service, fall back to mock if not available
-let recipeService
-try {
-  recipeService = require('../../services/recipeService').recipeService
-} catch (error) {
-  console.warn('Recipe service not found, using fallback data')
-  recipeService = fallbackRecipeService
-}
+import { recipeService } from '../../services/recipeService'
 
 // Async thunks for API calls
 export const generateRecipe = createAsyncThunk(
@@ -224,7 +217,16 @@ const recipeSlice = createSlice({
       })
       .addCase(generateRecipe.fulfilled, (state, action) => {
         state.isGenerating = false
-        state.currentRecipe = action.payload.recipe
+        // Normalize recipe object to always have id and title
+        let recipe = action.payload.recipe
+        if (recipe) {
+          recipe = {
+            ...recipe,
+            id: recipe.id || recipe._id,
+            title: recipe.title || recipe.name
+          }
+        }
+        state.currentRecipe = recipe
       })
       .addCase(generateRecipe.rejected, (state, action) => {
         state.isGenerating = false
@@ -238,8 +240,16 @@ const recipeSlice = createSlice({
       })
       .addCase(fetchUserRecipes.fulfilled, (state, action) => {
         state.isLoading = false
-        state.recipes = action.payload.recipes
-        state.pagination = action.payload.pagination
+        // Use the correct path for recipes and pagination
+        const recipes = Array.isArray(action.payload.data?.recipes)
+          ? action.payload.data.recipes.map(recipe => ({
+              ...recipe,
+              id: recipe.id || recipe._id,
+              title: recipe.title || recipe.name
+            }))
+          : []
+        state.recipes = recipes
+        state.pagination = action.payload.data?.pagination || { current: 1, pages: 1, total: 0 }
       })
       .addCase(fetchUserRecipes.rejected, (state, action) => {
         state.isLoading = false
@@ -253,7 +263,18 @@ const recipeSlice = createSlice({
       })
       .addCase(getRecipeById.fulfilled, (state, action) => {
         state.isLoading = false
-        state.currentRecipe = action.payload.recipe
+        // Normalize the recipe object to always have id and title
+        let recipe = action.payload?.recipe || action.payload?.data?.recipe
+        if (recipe) {
+          recipe = {
+            ...recipe,
+            id: recipe.id || recipe._id,
+            title: recipe.title || recipe.name
+          }
+          state.currentRecipe = recipe
+        } else {
+          state.currentRecipe = null
+        }
       })
       .addCase(getRecipeById.rejected, (state, action) => {
         state.isLoading = false
