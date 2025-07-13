@@ -1,3 +1,16 @@
+// Get current user profile
+const getProfile = async (req, res) => {
+    try {
+        const user = await User.findById(req.user._id);
+        if (!user) {
+            return responseHandler.error(res, 'User not found', 404);
+        }
+        responseHandler.success(res, { user }, 'Profile fetched successfully');
+    } catch (error) {
+        logger.error('Get profile error:', error);
+        responseHandler.error(res, 'Failed to fetch profile', 500);
+    }
+};
 const User = require('../models/User');
 const Recipe = require('../models/Recipe');
 const logger = require('../utils/logger');
@@ -7,6 +20,7 @@ const updateProfile = async (req, res) => {
     try {
         const { username } = req.body;
         const userId = req.user._id;
+        let updateFields = {};
 
         // Check if username is already taken by another user
         if (username) {
@@ -14,17 +28,31 @@ const updateProfile = async (req, res) => {
                 username, 
                 _id: { $ne: userId } 
             });
-
             if (existingUser) {
                 return responseHandler.error(res, 'Username already taken', 400);
             }
+            updateFields.username = username;
         }
 
-        const updatedUser = await User.findByIdAndUpdate(
+        // Handle image upload
+        if (req.file && req.file.filename) {
+            // Save relative path or URL (should match static route)
+            updateFields.image = `/uploads/${req.file.filename}`;
+        }
+
+
+        // If no fields to update, return error
+        if (Object.keys(updateFields).length === 0) {
+            return responseHandler.error(res, 'No data to update', 400);
+        }
+
+        await User.findByIdAndUpdate(
             userId,
-            { username },
+            updateFields,
             { new: true, runValidators: true }
         );
+        // Always fetch the latest user (with all fields)
+        const updatedUser = await User.findById(userId);
 
         logger.info(`User profile updated: ${updatedUser.email}`);
 
@@ -129,6 +157,7 @@ const deleteAccount = async (req, res) => {
 
 module.exports = {
     updateProfile,
+    getProfile,
     getDashboardStats,
     changePassword,
     deleteAccount

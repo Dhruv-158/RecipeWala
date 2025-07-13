@@ -268,18 +268,6 @@ const Header = () => {
                   <span>Profile</span>
                 </button>
                 
-                <button
-                  onClick={() => {
-                    // TODO: Implement settings page
-                    setShowProfileMenu(false)
-                    toast.info('Settings coming soon!')
-                  }}
-                  className="flex items-center space-x-2 w-full px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
-                >
-                  <Settings className="h-4 w-4" />
-                  <span>Settings</span>
-                </button>
-                
                 <hr className="my-1" />
                 
                 <button

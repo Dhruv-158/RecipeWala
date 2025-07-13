@@ -10,16 +10,22 @@ const router = express.Router();
 router.use(auth);
 
 // User profile routes
-router.put('/profile', [
-    body('username')
-        .optional()
-        .trim()
-        .isLength({ min: 3, max: 20 })
-        .withMessage('Username must be between 3 and 20 characters')
-        .matches(/^[a-zA-Z0-9_]+$/)
-        .withMessage('Username can only contain letters, numbers, and underscores'),
-    handleValidationErrors
-], userController.updateProfile);
+const upload = require('../middleware/upload');
+router.get('/profile', userController.getProfile);
+router.put('/profile', 
+    upload.single('image'),
+    [
+        body('username')
+            .optional()
+            .trim()
+            .isLength({ min: 3, max: 20 })
+            .withMessage('Username must be between 3 and 20 characters')
+            .matches(/^[a-zA-Z0-9_]+$/)
+            .withMessage('Username can only contain letters, numbers, and underscores'),
+        handleValidationErrors
+    ], 
+    userController.updateProfile
+);
 
 router.get('/dashboard-stats', userController.getDashboardStats);
 

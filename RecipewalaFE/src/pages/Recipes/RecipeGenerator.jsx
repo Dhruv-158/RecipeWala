@@ -15,9 +15,11 @@ import {
   Eye,
   Loader2,
   Lightbulb,
-  Settings
+  Settings,
+  ArrowRight,
+  CheckCircle
 } from 'lucide-react'
-import { generateRecipe, clearError } from '../../features/recipes/recipeSlice'
+import { generateRecipe, clearError, clearCurrentRecipe } from '../../features/recipes/recipeSlice'
 import toast from 'react-hot-toast'
 import logoImg from '../../assets/images/logo.png'
 
@@ -42,6 +44,15 @@ const RecipeGenerator = () => {
   const navigate = useNavigate()
   const { currentRecipe, isGenerating, error } = useSelector((state) => state.recipes)
   const [showAdvanced, setShowAdvanced] = useState(false)
+  const [showSuccess, setShowSuccess] = useState(false)
+
+  // Add debug logging
+  console.log('RecipeGenerator - Redux State:', {
+    currentRecipe,
+    isGenerating,
+    error,
+    showSuccess
+  })
 
   const {
     register,
@@ -71,32 +82,75 @@ const RecipeGenerator = () => {
   useEffect(() => {
     if (error) {
       toast.error(error)
+      setShowSuccess(false)
     }
   }, [error])
 
-  const onSubmit = async (data) => {
-    try {
-      dispatch(clearError())
-      const result = await dispatch(generateRecipe(data)).unwrap()
-      toast.success('Recipe generated successfully!')
-      
-      // Scroll to recipe display
+  // Show success state when recipe is generated
+  useEffect(() => {
+    console.log('Success effect - checking conditions:', {
+      currentRecipe: !!currentRecipe,
+      isGenerating,
+      error: !!error,
+      recipeId: currentRecipe?.id || currentRecipe?._id,
+      recipeName: currentRecipe?.name || currentRecipe?.title
+    })
+    
+    if (currentRecipe && !isGenerating && !error) {
+      console.log('✅ Setting showSuccess to true')
+      setShowSuccess(true)
+      // Auto-scroll to success section
       setTimeout(() => {
-        document.getElementById('generated-recipe')?.scrollIntoView({ 
+        const element = document.getElementById('recipe-success')
+        console.log('Scrolling to element:', element)
+        element?.scrollIntoView({ 
           behavior: 'smooth' 
         })
       }, 100)
+    } else {
+      console.log('❌ Not showing success - conditions not met')
+    }
+  }, [currentRecipe, isGenerating, error])
+
+  const onSubmit = async (data) => {
+    try {
+      console.log('📝 Submitting recipe generation:', data)
+      setShowSuccess(false)
+      dispatch(clearError())
+      const result = await dispatch(generateRecipe(data)).unwrap()
+      console.log('✅ Recipe generation result:', result)
+      toast.success('Recipe generated successfully!')
     } catch (err) {
-      console.error('Recipe generation failed:', err)
+      console.error('❌ Recipe generation failed:', err)
+      setShowSuccess(false)
     }
   }
 
   const handleRegenerateRecipe = () => {
     const formData = {
       recipeName: watchedRecipeName,
-      // Add other form values as needed
+      // Add other form values as needed from the form
     }
+    setShowSuccess(false)
     onSubmit(formData)
+  }
+
+  const handleViewRecipe = () => {
+    if (currentRecipe && (currentRecipe.id || currentRecipe._id)) {
+      navigate(`/recipes/${currentRecipe.id || currentRecipe._id}`)
+    }
+  }
+
+  const handleGenerateAnother = () => {
+    setShowSuccess(false)
+    dispatch(clearCurrentRecipe())
+    reset()
+    // Scroll back to the form
+    setTimeout(() => {
+      document.getElementById('recipe-form')?.scrollIntoView({ 
+        behavior: 'smooth' 
+      })
+    }, 100)
   }
 
   const cuisineOptions = [
@@ -148,7 +202,7 @@ const RecipeGenerator = () => {
       </div>
 
       {/* Recipe Generation Form */}
-      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+      <div id="recipe-form" className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-6">
           {/* Main Recipe Input */}
           <div>
@@ -156,7 +210,7 @@ const RecipeGenerator = () => {
               What would you like to cook? ✨
             </label>
             <div className="relative">
-              <ChefHat className="absolute left-3 top-3 h-5 w-5 text-gray-400" />
+              <ChefHat className="absolute left-4 top-4 h-5 w-5 text-gray-400" />
               <input
                 {...register('recipeName')}
                 type="text"
@@ -164,7 +218,7 @@ const RecipeGenerator = () => {
                 className={`w-full pl-12 pr-3 py-3 text-lg border rounded-lg focus:outline-none focus:ring-2 focus:ring-orange-500 focus:border-transparent transition-colors ${
                   errors.recipeName ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="e.g., Spicy chicken curry, Chocolate chip cookies, Healthy salad..."
+                placeholder="e.g., Pani Puri, Chocolate chip cookies, Healthy salad..."
                 disabled={isGenerating}
               />
             </div>
@@ -174,7 +228,7 @@ const RecipeGenerator = () => {
             
             {/* Quick Suggestions */}
             <div className="mt-3">
-              <p className="text-sm text-gray-600 mb-2">Quick suggestions:</p>
+              <p className="text-sm text-gray-600 mb-3">Quick suggestions:</p>
               <div className="flex flex-wrap gap-2">
                 {quickSuggestions.map((suggestion) => (
                   <button
@@ -362,195 +416,90 @@ const RecipeGenerator = () => {
         </div>
       )}
 
-      {/* Button to view generated recipe */}
-      {/* {currentRecipe && !isGenerating && (currentRecipe.id || currentRecipe._id) && (
-        <>
-          <div className="flex justify-center mt-6">
-            <button
-              onClick={() => navigate(`/recipes/${currentRecipe.id || currentRecipe._id}`)}
-              className="bg-green-500 hover:bg-green-600 text-white px-6 py-3 rounded-lg font-medium transition-colors shadow-sm"
-            >
-              View This Recipe
-            </button>
+      {/* Success State with Navigation */}
+      {showSuccess && currentRecipe && !isGenerating && (currentRecipe.id || currentRecipe._id) && (
+        <div id="recipe-success" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden">
+          {/* Success Header */}
+          <div className="bg-gradient-to-r from-green-500 to-emerald-500 p-6 text-white">
+            <div className="flex items-center space-x-3 mb-3">
+              <CheckCircle className="h-8 w-8" />
+              <h2 className="text-2xl font-bold">Recipe Generated Successfully! 🎉</h2>
+            </div>
+            <p className="text-green-100">
+              Your delicious recipe for "{currentRecipe.title || currentRecipe.name}" is ready!
+            </p>
           </div>
-          <div id="generated-recipe" className="bg-white rounded-xl shadow-sm border border-gray-200 overflow-hidden mt-6">
-            <RecipeDisplay 
-              recipe={currentRecipe} 
-              onRegenerate={handleRegenerateRecipe}
-              onSave={() => toast.success('Recipe saved!')}
-              onView={() => navigate(`/recipes/${recentRecipe.id || recentRecipe._id}`)}
-            />
-          </div>
-        </>
-      )} */}
-    </div>
-  )
-}
 
-// Recipe Display Component
-const RecipeDisplay = ({ recipe, onRegenerate, onSave, onView }) => {
-  const [activeTab, setActiveTab] = useState('ingredients')
-
-  const tabs = [
-    { id: 'ingredients', label: 'Ingredients', icon: null },
-    { id: 'instructions', label: 'Instructions', icon: null },
-    { id: 'nutrition', label: 'Nutrition', icon: null },
-  ]
-
-  // Helper to get recipe name/title
-  const getRecipeTitle = (r) => r.title || r.name || 'Untitled Recipe'
-  // Helper to get description
-  const getRecipeDescription = (r) => r.description || ''
-  // Helper to get ingredients as strings
-  const getIngredients = (r) => {
-    if (Array.isArray(r.ingredients)) {
-      if (typeof r.ingredients[0] === 'string') return r.ingredients
-      // If array of objects
-      return r.ingredients.map(ing => {
-        if (typeof ing === 'string') return ing
-        return `${ing.amount || ''} ${ing.unit || ''} ${ing.item || ''}`.trim()
-      })
-    }
-    return []
-  }
-  // Helper to get instructions as strings
-  const getInstructions = (r) => {
-    if (Array.isArray(r.instructions)) {
-      if (typeof r.instructions[0] === 'string') return r.instructions
-      // If array of objects
-      return r.instructions.map(step => step.instruction || step.step || step)
-    }
-    return []
-  }
-
-  return (
-    <div>
-      {/* Recipe Header */}
-      <div className="bg-gradient-to-r from-green-500 to-blue-500 p-6 text-white">
-        <div className="flex items-start justify-between">
-          <div>
-            <h2 className="text-2xl font-bold mb-2">{getRecipeTitle(recipe)}</h2>
-            <p className="text-green-100 mb-4">{getRecipeDescription(recipe)}</p>
-            
-            {/* Recipe Meta */}
-            <div className="flex items-center space-x-6 text-sm">
-              <div className="flex items-center space-x-1">
-                <Clock className="h-4 w-4" />
-                <span>{recipe.cookTime || '30 mins'}</span>
+          {/* Recipe Preview */}
+          <div className="p-6">
+            <div className="bg-gray-50 rounded-lg p-4 mb-6">
+              <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                {currentRecipe.title || currentRecipe.name}
+              </h3>
+              <p className="text-gray-600 mb-4">
+                {currentRecipe.description || 'A delicious AI-generated recipe just for you!'}
+              </p>
+              
+              {/* Quick Recipe Info */}
+              <div className="flex items-center space-x-6 text-sm text-gray-500">
+                <div className="flex items-center space-x-1">
+                  <Clock className="h-4 w-4" />
+                  <span>{currentRecipe.cookTime || currentRecipe.prepTime || '30 mins'}</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <Users className="h-4 w-4" />
+                  <span>{currentRecipe.servings || 4} servings</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <ChefHat className="h-4 w-4" />
+                  <span className="capitalize">{currentRecipe.difficulty || 'Medium'}</span>
+                </div>
               </div>
-              <div className="flex items-center space-x-1">
-                <Users className="h-4 w-4" />
-                <span>{recipe.servings || 4} servings</span>
-              </div>
-              <div className="flex items-center space-x-1">
-                <ChefHat className="h-4 w-4" />
-                <span className="capitalize">{recipe.difficulty || 'Medium'}</span>
+            </div>
+
+            {/* Action Buttons */}
+            <div className="flex flex-col sm:flex-row gap-4">
+              <button
+                onClick={handleViewRecipe}
+                className="flex-1 bg-orange-500 text-white px-6 py-3 rounded-lg hover:bg-orange-600 transition-colors font-medium flex items-center justify-center space-x-2"
+              >
+                <Eye className="h-5 w-5" />
+                <span>View Full Recipe</span>
+                <ArrowRight className="h-4 w-4" />
+              </button>
+              
+              <button
+                onClick={handleRegenerateRecipe}
+                className="flex-1 bg-gray-500 text-white px-6 py-3 rounded-lg hover:bg-gray-600 transition-colors font-medium flex items-center justify-center space-x-2"
+              >
+                <RefreshCw className="h-5 w-5" />
+                <span>Regenerate Recipe</span>
+              </button>
+              
+              <button
+                onClick={handleGenerateAnother}
+                className="flex-1 bg-blue-500 text-white px-6 py-3 rounded-lg hover:bg-blue-600 transition-colors font-medium flex items-center justify-center space-x-2"
+              >
+                <Sparkles className="h-5 w-5" />
+                <span>Generate Another</span>
+              </button>
+            </div>
+
+            {/* Additional Info */}
+            <div className="mt-4 p-4 bg-blue-50 rounded-lg">
+              <div className="flex items-start space-x-2">
+                <Lightbulb className="h-5 w-5 text-blue-500 mt-0.5 flex-shrink-0" />
+                <div>
+                  <p className="text-sm text-blue-700">
+                    <strong>Pro Tip:</strong> Your recipe has been saved automatically. 
+                    {!currentRecipe.imageGenerated && ' An AI image is being generated and will appear shortly!'}
+                  </p>
+                </div>
               </div>
             </div>
           </div>
-          
-          {/* Action Buttons */}
-          <div className="flex space-x-2">
-            <button
-              onClick={onRegenerate}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg transition-colors flex items-center space-x-1"
-            >
-              <RefreshCw className="h-4 w-4" />
-              <span>Regenerate</span>
-            </button>
-            <button
-              onClick={onSave}
-              className="bg-white bg-opacity-20 hover:bg-opacity-30 text-white px-3 py-2 rounded-lg transition-colors flex items-center space-x-1"
-            >
-              <Save className="h-4 w-4" />
-              <span>Save</span>
-            </button>
-            <button
-              onClick={onView}
-              className="bg-white text-green-600 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors flex items-center space-x-1"
-            >
-              <Eye className="h-4 w-4" />
-              <span>View</span>
-            </button>
-          </div>
         </div>
-      </div>
-
-      {/* Recipe Content Tabs */}
-      <div className="border-b border-gray-200">
-        <div className="flex space-x-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`px-6 py-3 font-medium border-b-2 transition-colors ${
-                activeTab === tab.id
-                  ? 'border-orange-500 text-orange-600'
-                  : 'border-transparent text-gray-500 hover:text-gray-700'
-              }`}
-            >
-              {tab.label}
-            </button>
-          ))}
-        </div>
-      </div>
-
-      {/* Tab Content */}
-      <div className="p-6">
-        {activeTab === 'ingredients' && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Ingredients</h3>
-            <ul className="space-y-2">
-              {getIngredients(recipe).length > 0 ? getIngredients(recipe).map((ingredient, index) => (
-                <li key={index} className="flex items-center space-x-2">
-                  <span className="w-2 h-2 bg-orange-500 rounded-full"></span>
-                  <span className="text-gray-700">{ingredient}</span>
-                </li>
-              )) : (
-                <li className="text-gray-500">No ingredients available</li>
-              )}
-            </ul>
-          </div>
-        )}
-
-        {activeTab === 'instructions' && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Instructions</h3>
-            <ol className="space-y-4">
-              {getInstructions(recipe).length > 0 ? getInstructions(recipe).map((step, index) => (
-                <li key={index} className="flex space-x-3">
-                  <span className="flex-shrink-0 w-6 h-6 bg-orange-500 text-white rounded-full flex items-center justify-center text-sm font-medium">
-                    {index + 1}
-                  </span>
-                  <p className="text-gray-700 pt-0.5">{step}</p>
-                </li>
-              )) : (
-                <li className="text-gray-500">No instructions available</li>
-              )}
-            </ol>
-          </div>
-        )}
-
-        {activeTab === 'nutrition' && (
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900 mb-4">Nutritional Information</h3>
-            {recipe.nutrition ? (
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                {Object.entries(recipe.nutrition)
-                  .filter(([key, _]) => key.toLowerCase() !== 'id' && key.toLowerCase() !== '_id')
-                  .map(([key, value]) => (
-                    <div key={key} className="bg-gray-50 rounded-lg p-3 text-center">
-                      <p className="text-2xl font-bold text-gray-900">{value}</p>
-                      <p className="text-sm text-gray-600 capitalize">{key}</p>
-                    </div>
-                  ))}
-              </div>
-            ) : (
-              <p className="text-gray-500">Nutritional information not available</p>
-            )}
-          </div>
-        )}
-      </div>
+      )}
     </div>
   )
 }

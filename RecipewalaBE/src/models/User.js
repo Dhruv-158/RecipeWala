@@ -36,6 +36,11 @@ const userSchema = new mongoose.Schema({
     lastLogin: {
         type: Date,
         default: Date.now
+    },
+    image: {
+        type: String, // URL or path to the user's profile image
+        default: '',
+        trim: true
     }
 }, {
     timestamps: true
