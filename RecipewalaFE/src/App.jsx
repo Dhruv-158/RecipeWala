@@ -1,4 +1,3 @@
-// WORKING: src/App.jsx
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { useSelector, useDispatch } from 'react-redux'
 import { useEffect } from 'react'
@@ -6,6 +5,7 @@ import { loadUser } from './features/auth/loadUser'
 import Layout from './components/Layout/Layout'
 import AuthLayout from './components/Layout/AuthLayout'
 import ProtectedRoute from './components/Auth/ProtectedRoute'
+import LandingPage from './pages/Landing/LandingPage'
 import Login from './pages/Auth/Login'
 import Register from './pages/Auth/Register'
 import Dashboard from './pages/Dashboard/Dashboard'
@@ -39,9 +39,8 @@ const CollectionDetail = () => {
   )
 }
 
-
 function App() {
-  const { isAuthenticated } = useSelector((state) => state.auth)
+  const { isAuthenticated, isLoading } = useSelector((state) => state.auth)
   const dispatch = useDispatch()
 
   // Load user profile on app start (if token exists)
@@ -52,11 +51,34 @@ function App() {
     }
   }, [dispatch])
 
+  // Show loading spinner while checking authentication
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
+          <p className="text-gray-600">Loading RecipeWala...</p>
+        </div>
+      </div>
+    )
+  }
+
   return (
     <div className="App">
       <Routes>
+        {/* Debug Route */}
         <Route path="/debug" element={<BackendTest />} />
-        {/* Public Routes */}
+        
+        {/* Landing Page - Root Route */}
+        <Route path="/" element={
+          !isAuthenticated ? (
+            <LandingPage />
+          ) : (
+            <Navigate to="/dashboard" replace />
+          )
+        } />
+
+        {/* Public Authentication Routes */}
         <Route path="/login" element={
           !isAuthenticated ? (
             <AuthLayout>
@@ -77,8 +99,59 @@ function App() {
           )
         } />
 
-        {/* Protected Routes */}
-        <Route path="/" element={
+        {/* Protected Application Routes */}
+        <Route path="/dashboard" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Dashboard />} />
+        </Route>
+
+        <Route path="/generate" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<RecipeGenerator />} />
+        </Route>
+
+        <Route path="/recipes" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<RecipeList />} />
+          <Route path=":id" element={<RecipeDetail />} />
+        </Route>
+
+        <Route path="/collections" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Collections />} />
+          <Route path=":id" element={<CollectionDetail />} />
+        </Route>
+
+        <Route path="/shopping-list" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<ShoppingList />} />
+        </Route>
+
+        <Route path="/profile" element={
+          <ProtectedRoute>
+            <Layout />
+          </ProtectedRoute>
+        }>
+          <Route index element={<Profile />} />
+        </Route>
+
+        {/* Alternative: Keep the old nested route structure for backward compatibility */}
+        <Route path="/app" element={
           <ProtectedRoute>
             <Layout />
           </ProtectedRoute>

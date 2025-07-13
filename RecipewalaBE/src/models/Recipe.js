@@ -1,3 +1,5 @@
+// Update your Recipe.js model to include these new fields
+
 const mongoose = require('mongoose');
 
 const ingredientSchema = new mongoose.Schema({
@@ -35,6 +37,17 @@ const nutritionSchema = new mongoose.Schema({
     protein: String,
     carbs: String,
     fat: String
+});
+
+const imageAttributionSchema = new mongoose.Schema({
+    photographer: String,
+    photographerUrl: String,
+    unsplashUrl: String,
+    source: {
+        type: String,
+        enum: ['unsplash', 'dalle', 'stability', 'generated'],
+        default: 'generated'
+    }
 });
 
 const recipeSchema = new mongoose.Schema({
@@ -82,13 +95,71 @@ const recipeSchema = new mongoose.Schema({
         type: String,
         required: true,
         trim: true
+    },
+    // Favorites support
+    isFavorite: {
+        type: Boolean,
+        default: false
+    },
+    // Tags support for better filtering
+    tags: [{
+        type: String,
+        trim: true
+    }],
+    // Cuisine support
+    cuisine: {
+        type: String,
+        trim: true
+    },
+    // Image support
+    imageUrl: {
+        type: String,
+        trim: true
+    },
+    thumbnailUrl: {
+        type: String,
+        trim: true
+    },
+    imageGenerated: {
+        type: Boolean,
+        default: false
+    },
+    // NEW FIELDS for tracking image generation failures
+    imageGenerationFailed: {
+        type: Boolean,
+        default: false
+    },
+    imageGenerationAttempts: {
+        type: Number,
+        default: 0
+    },
+    lastImageGenerationAttempt: {
+        type: Date,
+        default: null
+    },
+    imageAttribution: imageAttributionSchema,
+    // Image generation prompt for reference
+    imagePrompt: {
+        type: String,
+        trim: true
     }
 }, {
     timestamps: true
 });
 
+// Update lastImageGenerationAttempt before saving
+recipeSchema.pre('save', function(next) {
+    if (this.isModified('imageGenerationAttempts')) {
+        this.lastImageGenerationAttempt = new Date();
+    }
+    next();
+});
+
 // Indexes for performance
 recipeSchema.index({ user: 1, createdAt: -1 });
 recipeSchema.index({ name: 'text', description: 'text' });
+recipeSchema.index({ user: 1, isFavorite: 1 });
+recipeSchema.index({ user: 1, imageGenerated: 1 });
+recipeSchema.index({ user: 1, imageGenerationFailed: 1 });
 
 module.exports = mongoose.model('Recipe', recipeSchema);

@@ -8,7 +8,15 @@
     "dev": "nodemon server.js",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "keywords": ["recipe", "ai", "food", "cooking", "node.js", "express", "mongodb"],
+  "keywords": [
+    "recipe",
+    "ai",
+    "food",
+    "cooking",
+    "node.js",
+    "express",
+    "mongodb"
+  ],
   "author": "Recipe Wala Team",
   "license": "MIT",
   "type": "commonjs",
@@ -25,6 +33,8 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.0.3",
+    "multer": "^2.0.1",
+    "node-fetch": "^3.3.2",
     "winston": "^3.11.0"
   },
   "devDependencies": {

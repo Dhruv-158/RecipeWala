@@ -13,8 +13,19 @@ router.use(auth);
 router.post('/generate', recipeLimiter, recipeValidation, recipeController.generateRecipe);
 router.get('/', recipeController.getUserRecipes);
 router.get('/search', recipeController.searchRecipes);
+
 // Only match a valid MongoDB ObjectId for :id
 router.get('/:id([0-9a-fA-F]{24})', recipeController.getRecipeById);
-router.delete('/:id', recipeController.deleteRecipe);
+router.put('/:id([0-9a-fA-F]{24})', recipeController.updateRecipe);
+router.delete('/:id([0-9a-fA-F]{24})', recipeController.deleteRecipe);
+
+// Toggle favorite route
+router.patch('/:id([0-9a-fA-F]{24})/favorite', recipeController.toggleFavorite);
+
+// Image generation route
+router.post('/:id([0-9a-fA-F]{24})/generate-image', recipeController.generateRecipeImage);
+
+// Add to your routes/recipes.js
+router.post('/:id([0-9a-fA-F]{24})/retry-image', recipeController.retryImageGeneration);
 
 module.exports = router;

@@ -70,16 +70,6 @@ const CookingInsights = ({ className = '' }) => {
     <div className={`bg-white rounded-lg border border-gray-200 p-6 ${className}`}>
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-gray-900">Your Cooking Insights</h3>
-        <select
-          value={timeRange}
-          onChange={(e) => setTimeRange(e.target.value)}
-          className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-orange-500"
-        >
-          <option value="7days">Last 7 days</option>
-          <option value="30days">Last 30 days</option>
-          <option value="90days">Last 3 months</option>
-          <option value="1year">Last year</option>
-        </select>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
