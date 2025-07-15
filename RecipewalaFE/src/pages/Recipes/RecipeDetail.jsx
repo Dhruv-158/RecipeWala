@@ -43,12 +43,12 @@ const RecipeDetail = () => {
   // Reset servings when recipe changes
   useEffect(() => {
     if (recipe && recipe.servings) {
-      setServings(recipe.servings)
+      setServings(Number(recipe.servings)) // Convert to number
     }
   }, [recipe])
 
   const handleServingsChange = (newServings) => {
-    setServings(Math.max(1, newServings))
+    setServings(Math.max(1, Number(newServings))) // Ensure it's a number
   }
 
   const handleDeleteRecipe = async () => {
@@ -86,30 +86,99 @@ const RecipeDetail = () => {
   }
 
   const calculateIngredients = (ingredients, originalServings, newServings) => {
+    if (!ingredients || !Array.isArray(ingredients)) {
+      console.warn('Invalid ingredients data:', ingredients)
+      return []
+    }
+
     const ratio = newServings / originalServings
-    return ingredients.map(ingredient => {
-      // If ingredient is a string, scale as before
+
+    return ingredients.map((ingredient, index) => {
+      // Debug log each ingredient
+      console.log(`Processing ingredient ${index}:`, ingredient)
+
+      // Handle null or undefined ingredients
+      if (!ingredient) {
+        return 'Invalid ingredient'
+      }
+
+      // If ingredient is a string
       if (typeof ingredient === 'string') {
+        // Handle empty strings
+        if (!ingredient.trim()) {
+          return 'Empty ingredient'
+        }
+
+        // Find numbers in the string and scale them, keep as strings
         const numbers = ingredient.match(/\d+\.?\d*/g)
-        if (numbers) {
+        if (numbers && numbers.length > 0) {
           let scaledIngredient = ingredient
           numbers.forEach(num => {
-            const scaledNum = (parseFloat(num) * ratio).toFixed(2).replace(/\.?0+$/, '')
-            scaledIngredient = scaledIngredient.replace(num, scaledNum)
+            const originalNum = parseFloat(num)
+            // Scale but keep as string (no integer conversion)
+            const scaledNum = String(originalNum * ratio)
+            scaledIngredient = scaledIngredient.replace(new RegExp(num, 'g'), scaledNum)
           })
           return scaledIngredient
         }
+        // Return as-is if no numbers found
         return ingredient
       }
-      // If ingredient is an object, format and scale quantity
+
+      // If ingredient is an object
       if (typeof ingredient === 'object' && ingredient !== null) {
-        const qty = ingredient.quantity ? (ingredient.quantity * ratio).toFixed(2).replace(/\.?0+$/, '') : ''
-        const unit = ingredient.unit || ''
-        const name = ingredient.name || ''
-        return [qty, unit, name].filter(Boolean).join(' ').trim()
+        // Handle different possible object structures
+        let amount = ingredient.quantity || ingredient.amount || ingredient.qty || ''
+        let name = ingredient.name || ingredient.ingredient || ingredient.item || ''
+
+        // If it's a nested object, try to extract meaningful data
+        if (!name && !amount) {
+          // Try to find any text properties
+          const textProps = Object.values(ingredient).filter(val => 
+            typeof val === 'string' && val.trim().length > 0
+          )
+          if (textProps.length > 0) {
+            return textProps.join(' ')
+          }
+          return JSON.stringify(ingredient)
+        }
+
+        // Scale the amount string (if it contains numbers) but keep the full string format
+        let scaledAmount = amount
+        if (amount && typeof amount === 'string') {
+          const numbers = amount.match(/\d+\.?\d*/g)
+          if (numbers && numbers.length > 0) {
+            scaledAmount = amount
+            numbers.forEach(num => {
+              const originalNum = parseFloat(num)
+              const scaledNum = String(originalNum * ratio)
+              scaledAmount = scaledAmount.replace(new RegExp(num, 'g'), scaledNum)
+            })
+          }
+        } else if (amount && !isNaN(parseFloat(amount))) {
+          // If amount is just a number, scale it
+          scaledAmount = String(parseFloat(amount) * ratio)
+        }
+
+        // Convert to strings
+        const amountStr = scaledAmount ? String(scaledAmount) : ''
+        const nameStr = name ? String(name) : ''
+
+        // Build ingredient string - amount (with its units) and name
+        const parts = [amountStr, nameStr].filter(part => 
+          part && part.trim().length > 0
+        )
+        
+        return parts.join(' ').trim() || 'Invalid ingredient format'
       }
-      // Fallback for unexpected types
-      return String(ingredient)
+
+      // Handle arrays (in case ingredients are nested)
+      if (Array.isArray(ingredient)) {
+        return ingredient.join(' ')
+      }
+
+      // Fallback for other types
+      return String(ingredient) || 'Unknown ingredient'
     })
   }
 
@@ -145,9 +214,16 @@ const RecipeDetail = () => {
     )
   }
 
+  // Debug log the raw ingredients data
+  console.log('Raw recipe ingredients:', recipe.ingredients)
+  console.log('Recipe servings:', recipe.servings)
+
   const scaledIngredients = recipe.ingredients ? 
     calculateIngredients(recipe.ingredients, recipe.servings || 4, servings) : 
     []
+
+  // Debug log the processed ingredients
+  console.log('Processed ingredients:', scaledIngredients)
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -224,14 +300,14 @@ const RecipeDetail = () => {
             <span className="font-medium text-gray-900">Adjust Servings:</span>
             <div className="flex items-center space-x-3">
               <button
-                onClick={() => handleServingsChange(servings - 1)}
+                onClick={() => handleServingsChange(Number(servings) - 1)}
                 className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
               >
                 -
               </button>
               <span className="text-lg font-semibold w-8 text-center">{servings}</span>
               <button
-                onClick={() => handleServingsChange(servings + 1)}
+                onClick={() => handleServingsChange(Number(servings) + 1)}
                 className="w-8 h-8 rounded-full bg-orange-500 text-white flex items-center justify-center hover:bg-orange-600 transition-colors"
               >
                 +
@@ -267,14 +343,28 @@ const RecipeDetail = () => {
               <h3 className="text-lg font-semibold text-gray-900 mb-4">
                 Ingredients {servings !== (recipe.servings || 4) && `(scaled for ${servings} servings)`}
               </h3>
-              <ul className="space-y-3">
-                {scaledIngredients.map((ingredient, index) => (
-                  <li key={index} className="flex items-start space-x-3">
-                    <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
-                    <span className="text-gray-700">{ingredient}</span>
-                  </li>
-                ))}
-              </ul>
+              
+              {/* Debug information - remove this in production */}
+              {/* {process.env.NODE_ENV === 'development' && (
+                <div className="mb-4 p-3 bg-yellow-100 border border-yellow-300 rounded text-sm">
+                  <strong>Debug Info:</strong>
+                  <br />Raw ingredients: {JSON.stringify(recipe.ingredients)}
+                  <br />Processed count: {scaledIngredients.length}
+                </div>
+              )} */}
+
+              {scaledIngredients.length > 0 ? (
+                <ul className="space-y-3">
+                  {scaledIngredients.map((ingredient, index) => (
+                    <li key={index} className="flex items-start space-x-3">
+                      <span className="w-2 h-2 bg-orange-500 rounded-full mt-2 flex-shrink-0"></span>
+                      <span className="text-gray-700">{ingredient}</span>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <p className="text-gray-500">No ingredients available</p>
+              )}
             </div>
           )}
 

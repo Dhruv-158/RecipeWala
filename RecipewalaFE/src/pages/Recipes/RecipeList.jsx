@@ -592,11 +592,11 @@ const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite }) => {
           </button>
 
           {/* Image Status */}
-          {recipe?.imageGenerated && recipe?.imageUrl && (
+          {/* {recipe?.imageGenerated && recipe?.imageUrl && (
             <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
               AI Generated
             </div>
-          )}
+          )} */}
           
           {!recipe?.imageGenerated && !recipe?.imageUrl && (
             <div className="bg-orange-500 text-white px-2 py-1 rounded-full text-xs font-medium animate-pulse">
@@ -629,7 +629,7 @@ const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite }) => {
                   <Eye className="h-3 w-3" />
                   <span className="text-sm">View</span>
                 </button>
-                <button
+                {/* <button
                   onClick={(e) => {
                     e.stopPropagation()
                     onEdit()
@@ -639,7 +639,7 @@ const RecipeCard = ({ recipe, onView, onEdit, onDelete, onToggleFavorite }) => {
                 >
                   <Edit className="h-3 w-3" />
                   <span className="text-sm">Edit</span>
-                </button>
+                </button> */}
                 <button
                   onClick={(e) => {
                     e.stopPropagation()
