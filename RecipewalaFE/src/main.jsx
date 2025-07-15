@@ -1,6 +1,7 @@
-// WORKING: src/main.jsx
+// UPDATE: src/main.jsx
 import React from 'react'
 import ReactDOM from 'react-dom/client'
+import { HelmetProvider } from 'react-helmet-async'
 import { Provider } from 'react-redux'
 import { PersistGate } from 'redux-persist/integration/react'
 import { BrowserRouter } from 'react-router-dom'
@@ -8,7 +9,10 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query'
 import { Toaster } from 'react-hot-toast'
 import { store, persistor } from './app/store'
 import App from './App.jsx'
+import ErrorBoundary from './components/Common/ErrorBoundary'
+import LoadingSpinner from './components/Common/LoadingSpinner'
 import './index.css'
+import './styles/landing.css'
 
 // React Query client with proper configuration
 const queryClient = new QueryClient({
@@ -37,58 +41,62 @@ const queryClient = new QueryClient({
   },
 })
 
-// Simple loading component
-const LoadingFallback = () => (
-  <div className="min-h-screen flex items-center justify-center bg-gray-50">
-    <div className="text-center">
-      <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-orange-500 mx-auto mb-4"></div>
-      <p className="text-gray-600">Loading RecipeWala...</p>
-    </div>
-  </div>
-)
-
 ReactDOM.createRoot(document.getElementById('root')).render(
   <React.StrictMode>
-    <Provider store={store}>
-      <PersistGate loading={<LoadingFallback />} persistor={persistor}>
-        <QueryClientProvider client={queryClient}>
-          <BrowserRouter>
-            <App />
-            <Toaster 
-              position="top-right"
-              toastOptions={{
-                duration: 4000,
-                style: {
-                  background: '#363636',
-                  color: '#fff',
-                  borderRadius: '8px',
-                  fontSize: '14px',
-                },
-                success: {
-                  duration: 3000,
-                  iconTheme: {
-                    primary: '#10b981',
-                    secondary: '#fff',
-                  },
-                },
-                error: {
-                  duration: 5000,
-                  iconTheme: {
-                    primary: '#ef4444',
-                    secondary: '#fff',
-                  },
-                },
-                loading: {
-                  iconTheme: {
-                    primary: '#f97316',
-                    secondary: '#fff',
-                  },
-                },
-              }}
-            />
-          </BrowserRouter>
-        </QueryClientProvider>
-      </PersistGate>
-    </Provider>
+    <ErrorBoundary>
+      <HelmetProvider>
+        <Provider store={store}>
+          <PersistGate 
+            loading={
+              <div className="min-h-screen flex items-center justify-center bg-gray-50">
+                <div className="text-center">
+                  <LoadingSpinner size="large" className="mx-auto mb-4" />
+                  <p className="text-gray-600">Loading RecipeWala...</p>
+                </div>
+              </div>
+            } 
+            persistor={persistor}
+          >
+            <QueryClientProvider client={queryClient}>
+              <BrowserRouter>
+                <App />
+                <Toaster 
+                  position="top-right"
+                  toastOptions={{
+                    duration: 4000,
+                    style: {
+                      background: '#363636',
+                      color: '#fff',
+                      borderRadius: '8px',
+                      fontSize: '14px',
+                    },
+                    success: {
+                      duration: 3000,
+                      iconTheme: {
+                        primary: '#10b981',
+                        secondary: '#fff',
+                      },
+                    },
+                    error: {
+                      duration: 5000,
+                      iconTheme: {
+                        primary: '#ef4444',
+                        secondary: '#fff',
+                      },
+                    },
+                    loading: {
+                      iconTheme: {
+                        primary: '#f97316',
+                        secondary: '#fff',
+                      },
+                    },
+                  }}
+                />
+              </BrowserRouter>
+            </QueryClientProvider>
+          </PersistGate>
+        </Provider>
+      </HelmetProvider>
+    </ErrorBoundary>
   </React.StrictMode>,
 )
