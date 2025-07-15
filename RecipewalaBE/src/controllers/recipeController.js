@@ -25,9 +25,32 @@ const generateRecipe = async (req, res) => {
             return responseHandler.error(res, 'Recipe generation service is currently unavailable', 503);
         }
 
-        // Generate recipe using Gemini
+        // Generate recipe using Gemini with better error handling
         logger.info(`Generating recipe for: ${recipeName} by user: ${req.user.email}`);
-        const recipeData = await geminiConfig.generateRecipe(recipeName);
+        let recipeData;
+        
+        try {
+            recipeData = await geminiConfig.generateRecipe(recipeName);
+        } catch (geminiError) {
+            logger.error(`Gemini recipe generation failed for ${recipeName}:`, geminiError);
+            return responseHandler.error(res, `Recipe generation failed: ${geminiError.message}`, 500);
+        }
+
+        // Validate the generated recipe data
+        if (!recipeData || typeof recipeData !== 'object') {
+            logger.error(`Invalid recipe data generated for ${recipeName}:`, recipeData);
+            return responseHandler.error(res, 'Invalid recipe data generated', 500);
+        }
+
+        // Ensure required fields exist
+        recipeData.name = recipeData.name || recipeName;
+        recipeData.description = recipeData.description || `A delicious ${recipeName} recipe`;
+        recipeData.ingredients = recipeData.ingredients || [];
+        recipeData.instructions = recipeData.instructions || [];
+        recipeData.servings = recipeData.servings || 4;
+        recipeData.difficulty = recipeData.difficulty || 'Medium';
+        recipeData.prepTime = recipeData.prepTime || '15 minutes';
+        recipeData.cookTime = recipeData.cookTime || '30 minutes';
 
         // Ensure every ingredient has a unit
         if (Array.isArray(recipeData.ingredients)) {

@@ -6,7 +6,7 @@ class ImageService {
     constructor() {
         this.genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
         this.model = this.genAI.getGenerativeModel({ model: 'gemini-1.5-flash' });
-        this.maxRetries = 3;
+        this.maxRetries = 1000;
         this.timeout = 15000; // 15 seconds timeout per API call
     }
 
@@ -55,54 +55,56 @@ class ImageService {
     }
 
     /**
-     * Generate recipe image using Unsplash API (free alternative)
+     * Generate recipe image using Freepik API (free alternative)
      */
-    async generateRecipeImageUnsplash(recipeName) {
-        if (!process.env.UNSPLASH_ACCESS_KEY) {
-            console.log('Unsplash API key not configured');
+    async generateRecipeImageFreepik(recipeName) {
+        if (!process.env.FREEPIK_API_KEY) {
+            console.log('Freepik API key not configured');
             return null;
         }
 
         try {
-            const searchQuery = recipeName.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, '+');
-            const unsplashUrl = `https://api.unsplash.com/search/photos?query=${searchQuery}+food&per_page=1&client_id=${process.env.UNSPLASH_ACCESS_KEY}`;
+            const searchQuery = recipeName.toLowerCase().replace(/[^a-z0-9\s]/g, '').replace(/\s+/g, ' ').trim();
+            const freepikUrl = `https://api.freepik.com/v1/resources?locale=en-US&page=1&limit=1&order=latest&term=${encodeURIComponent(searchQuery + ' food')}`;
             
-            console.log(`Fetching image from Unsplash for: ${recipeName}`);
+            console.log(`Fetching image from Freepik for: ${recipeName}`);
             
             const response = await this.withTimeout(
-                fetch(unsplashUrl, {
+                fetch(freepikUrl, {
                     headers: {
-                        'Accept': 'application/json',
-                        'Accept-Version': 'v1'
+                        'X-Freepik-API-Key': process.env.FREEPIK_API_KEY,
+                        'Content-Type': 'application/json'
                     }
                 }),
                 this.timeout
             );
 
             if (!response.ok) {
-                throw new Error(`Unsplash API error: ${response.status} ${response.statusText}`);
+                throw new Error(`Freepik API error: ${response.status} ${response.statusText}`);
             }
             
             const data = await response.json();
             
-            if (data.results && data.results.length > 0) {
-                console.log(`Image found on Unsplash for: ${recipeName}`);
+            if (data.data && data.data.length > 0) {
+                console.log(`Image found on Freepik for: ${recipeName}`);
+                const resource = data.data[0];
                 return {
-                    imageUrl: data.results[0].urls.regular,
-                    thumbnailUrl: data.results[0].urls.small,
+                    imageUrl: resource.image?.source?.url || resource.thumbnails?.large?.url,
+                    thumbnailUrl: resource.thumbnails?.medium?.url || resource.thumbnails?.small?.url,
                     attribution: {
-                        photographer: data.results[0].user.name,
-                        photographerUrl: data.results[0].user.links.html,
-                        unsplashUrl: data.results[0].links.html,
-                        source: 'unsplash'
+                        author: resource.author?.username || 'Freepik',
+                        authorUrl: resource.author?.url,
+                        freepikUrl: resource.url,
+                        source: 'freepik',
+                        license: 'Freepik License'
                     }
                 };
             }
             
-            console.log(`No image found on Unsplash for: ${recipeName}`);
+            console.log(`No image found on Freepik for: ${recipeName}`);
             return null;
         } catch (error) {
-            console.error(`Error fetching image from Unsplash for ${recipeName}:`, error.message);
+            console.error(`Error fetching image from Freepik for ${recipeName}:`, error.message);
             return null;
         }
     }
@@ -202,16 +204,16 @@ class ImageService {
                     }
                 }
 
-                // Option 2: Try Unsplash (free, real photos)
-                if (process.env.UNSPLASH_ACCESS_KEY && !imageResult) {
+                // Option 2: Try Freepik (free, real photos)
+                if (process.env.FREEPIK_API_KEY && !imageResult) {
                     try {
-                        imageResult = await this.generateRecipeImageUnsplash(recipeName);
+                        imageResult = await this.generateRecipeImageFreepik(recipeName);
                         if (imageResult) {
-                            console.log(`✅ Image found using Unsplash for: ${recipeName}`);
+                            console.log(`✅ Image found using Freepik for: ${recipeName}`);
                             return imageResult;
                         }
-                    } catch (unsplashError) {
-                        console.warn(`Unsplash failed for ${recipeName}:`, unsplashError.message);
+                    } catch (freepikError) {
+                        console.warn(`Freepik failed for ${recipeName}:`, freepikError.message);
                     }
                 }
 
@@ -244,7 +246,7 @@ class ImageService {
     async checkServiceAvailability() {
         const services = {
             openai: !!process.env.OPENAI_API_KEY,
-            unsplash: !!process.env.UNSPLASH_ACCESS_KEY,
+            freepik: !!process.env.FREEPIK_API_KEY,
             gemini: !!process.env.GEMINI_API_KEY
         };
 

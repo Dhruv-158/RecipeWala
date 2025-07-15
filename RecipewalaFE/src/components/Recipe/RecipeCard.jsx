@@ -160,11 +160,11 @@ const RecipeCard = ({
           </button>
 
           {/* Image Status Indicator */}
-          {recipe?.imageGenerated && (
+          {/* {recipe?.imageGenerated && (
             <div className="bg-green-500 text-white px-2 py-1 rounded-full text-xs font-medium">
               AI Generated
             </div>
-          )}
+          )} */}
 
           {/* Menu Button */}
           <div className="relative">
@@ -191,7 +191,7 @@ const RecipeCard = ({
                   <Eye className="h-3 w-3" />
                   <span className="text-sm">View</span>
                 </button>
-                <button
+                {/* <button
                   onClick={(e) => {
                     e.stopPropagation()
                     onEdit()
@@ -201,7 +201,7 @@ const RecipeCard = ({
                 >
                   <Edit className="h-3 w-3" />
                   <span className="text-sm">Edit</span>
-                </button>
+                </button> */}
                 {!recipe?.imageGenerated && (
                   <button
                     onClick={(e) => {
