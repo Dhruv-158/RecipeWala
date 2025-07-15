@@ -80,7 +80,6 @@ const generateRecipe = async (req, res) => {
             createdAt: recipe.createdAt,
             updatedAt: recipe.updatedAt
         };
-
         // Send response immediately
         responseHandler.success(res, {
             recipe: responseRecipe

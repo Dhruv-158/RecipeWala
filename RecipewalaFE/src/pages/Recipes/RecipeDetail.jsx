@@ -90,12 +90,21 @@ const RecipeDetail = () => {
     return ingredients.map(ingredient => {
       // If ingredient is a string, scale as before
       if (typeof ingredient === 'string') {
+        // Don't scale ingredients that contain "to taste" or similar phrases
+        const nonScalablePatterns = /\b(to taste|as needed|optional|pinch|dash|handful)\b/i
+        if (nonScalablePatterns.test(ingredient)) {
+          return ingredient
+        }
+        
         const numbers = ingredient.match(/\d+\.?\d*/g)
         if (numbers) {
           let scaledIngredient = ingredient
           numbers.forEach(num => {
-            const scaledNum = (parseFloat(num) * ratio).toFixed(2).replace(/\.?0+$/, '')
-            scaledIngredient = scaledIngredient.replace(num, scaledNum)
+            const numValue = parseFloat(num)
+            if (!isNaN(numValue)) {
+              const scaledNum = (numValue * ratio).toFixed(2).replace(/\.?0+$/, '')
+              scaledIngredient = scaledIngredient.replace(num, scaledNum)
+            }
           })
           return scaledIngredient
         }
@@ -103,10 +112,32 @@ const RecipeDetail = () => {
       }
       // If ingredient is an object, format and scale quantity
       if (typeof ingredient === 'object' && ingredient !== null) {
-        const qty = ingredient.quantity ? (ingredient.quantity * ratio).toFixed(2).replace(/\.?0+$/, '') : ''
+        const amount = ingredient.amount || ''
         const unit = ingredient.unit || ''
-        const name = ingredient.name || ''
-        return [qty, unit, name].filter(Boolean).join(' ').trim()
+        const item = ingredient.item || ''
+        
+        // Check if amount contains "to taste" or similar non-scalable phrases
+        const nonScalablePatterns = /\b(to taste|as needed|optional|pinch|dash|handful)\b/i
+        if (nonScalablePatterns.test(amount) || nonScalablePatterns.test(unit)) {
+          // Don't scale, just format as is
+          return [amount, unit !== 'to taste' ? unit : '', item].filter(Boolean).join(' ').trim()
+        }
+        
+        // Try to extract numeric value from amount for scaling
+        const numMatch = amount.match(/(\d+\.?\d*)\s*(.*)/)
+        if (numMatch) {
+          const numValue = parseFloat(numMatch[1])
+          const restOfAmount = numMatch[2] || ''
+          
+          if (!isNaN(numValue)) {
+            const scaledNum = (numValue * ratio).toFixed(2).replace(/\.?0+$/, '')
+            const scaledAmount = `${scaledNum} ${restOfAmount}`.trim()
+            return [scaledAmount, unit !== 'to taste' ? unit : '', item].filter(Boolean).join(' ').trim()
+          }
+        }
+        
+        // Fallback: return as is if no numeric value found
+        return [amount, unit !== 'to taste' ? unit : '', item].filter(Boolean).join(' ').trim()
       }
       // Fallback for unexpected types
       return String(ingredient)
